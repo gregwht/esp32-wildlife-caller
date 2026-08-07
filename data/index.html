@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Solar Speaker</title>
+        <link rel="stylesheet" href="style.css">
+    </head>
+
+    <body>
+
+        <h1>Solar Speaker Setup</h1>
+
+        <label>
+            Start Time 01:
+            <input type="time" id="startTime01">
+        </label>
+
+        <br>
+
+        <label>Duration</label>
+
+        <br>
+
+        <label>
+            Hours:
+            <input type="number" id="duration01Hours" min="0" max="24" value="1">
+        </label>
+
+
+        <label>
+            Minutes:
+            <input type="number" id="duration01Mins" min="0" max="1440">
+        </label>
+
+        <br>
+
+        <button onclick="saveSettings()">Save</button>
+
+        <script src="script.js"></script>
+
+    </body>
+</html>
