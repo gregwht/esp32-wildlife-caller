@@ -16,9 +16,22 @@ function saveSettings() {
 	console.log(duration01);
 
 	fetch(`/save?time01=${time01}&duration01=${duration01}`)
+		.then(response => response.text())
+		.then(message => {
+			
+			const saveMessage = document.getElementById("saveMessage");
+			saveMessage.innerHTML = "Settings saved!";
+			
+			setTimeout(() => {
+				saveMessage.innerHTML = "";
+			}, 3000);
+
+			loadSettings();
+			
+		});
 }
 
-window.onload = function() {
+function loadSettings() {
 
 	fetch("/settings")
 		.then(response => response.json())
@@ -31,5 +44,28 @@ window.onload = function() {
 
 			document.getElementById("duration01Hours").value = hours;
 			document.getElementById("duration01Mins").value = minutes;
+
+			document.getElementById("statusStartTime").innerHTML = settings.time01;
+
+			document.getElementById("statusDuration").innerHTML = hours + "h " + minutes + "m";
 		});
+}
+
+function loadStatus() {
+
+	fetch("/status")
+	.then(response => response.json())
+	.then(status => {
+
+		document.getElementById("currentTime").innerHTML = status.time;
+	});
+}
+
+
+window.onload = function() {
+
+	loadSettings();
 };
+
+// Update every second so clock readout is accurate
+setInterval(loadStatus, 1000);

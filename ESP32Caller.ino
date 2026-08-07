@@ -59,6 +59,8 @@ void setup() {
 
   // Get latest time and duration settings
   enableSettingsEndpoint();
+  // Create endpoint for RTC time
+  enableStatusEndpoint();
 
   // Start web server
   server.begin();
@@ -140,19 +142,17 @@ void prepareWeb() {
   File root = LittleFS.open("/");
   File file = root.openNextFile();
   while (file) {
-    Serial.print("File ");
     Serial.print(file.name());
-    Serial.print(" loaded successfully, size ");
-    Serial.println(file.size());
+    Serial.println(" loaded successfully.");
     file = root.openNextFile();
   }
   Serial.println();
 
 }
 
+// Tell server what to do when Save button is pressed
 void enableSaving() {
 
-  // Tell server what to do when Save button is pressed
   server.on("/save", []() {
 
     // Create a variable for each setting
@@ -187,9 +187,9 @@ void enableSaving() {
   });
 }
 
+// When visiting https://192.168.4.1/settings, load the latest time and duration settings
 void enableSettingsEndpoint() {
 
-  // When visiting https://192.168.4.1/settings, load the latest time and duration settings
   server.on("/settings", []() {
 
     String time01 = prefs.getString("time01", "09:00");
@@ -209,6 +209,27 @@ void enableSettingsEndpoint() {
   });
 }
 
+void enableStatusEndpoint() {
+
+  server.on("/status", []() {
+
+    CurrentTime now = getCurrentTime();
+
+    StaticJsonDocument<200> doc;
+
+    doc["time"] = now.formatted;
+    doc["minutes"] = now.minutesSinceMidnight;
+
+    String response;
+
+    serializeJson(doc, response);
+
+    server.send(200, "application/json", response);
+
+  });
+}
+
+// Get the current time from the RTC
 CurrentTime getCurrentTime() {
 
   CurrentTime t;
@@ -235,6 +256,7 @@ CurrentTime getCurrentTime() {
   return t;
 }
 
+// Format a timestamp for debugging purposes
 void printTimestamp() {
 
   CurrentTime now = getCurrentTime();
@@ -256,6 +278,7 @@ uint16_t timeStringToMinutes(String time) {
   return (hours * 60) + minutes;
 }
 
+// Logic which determines if the speaker should be playing or silent
 void checkSchedule() {
 
   CurrentTime now = getCurrentTime();
