@@ -140,11 +140,14 @@ void prepareWeb() {
   File root = LittleFS.open("/");
   File file = root.openNextFile();
   while (file) {
+    Serial.print("File ");
     Serial.print(file.name());
-    Serial.println(" loaded successfully.");
+    Serial.print(" loaded successfully, size ");
+    Serial.println(file.size());
     file = root.openNextFile();
   }
   Serial.println();
+
 }
 
 void enableSaving() {

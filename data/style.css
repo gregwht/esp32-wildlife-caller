@@ -1,0 +1,118 @@
+/* Page background and overall layout */
+body {
+    margin: 0;
+    min-height: 100vh;
+
+    display: flex;
+    justify-content: center;
+    align-items: center;
+
+    background: #f2f4f5;
+
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+    color: #333;
+}
+
+
+/* Main content card */
+.container {
+    width: 90%;
+    max-width: 450px;
+
+    background: white;
+
+    padding: 30px;
+    border-radius: 16px;
+
+    box-sizing: border-box;
+
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+}
+
+
+/* Title */
+h1 {
+    margin: 0 0 30px 0;
+
+    text-align: center;
+
+    font-size: 1.8rem;
+    font-weight: 600;
+}
+
+
+/* Labels */
+label {
+    display: block;
+
+    margin-bottom: 20px;
+
+    font-size: 1.1rem;
+}
+
+
+/* Inputs */
+input {
+    display: block;
+
+    width: 100%;
+
+    margin-top: 8px;
+    padding: 12px;
+
+    box-sizing: border-box;
+
+    font-size: 1.1rem;
+
+    border: 1px solid #ccc;
+    border-radius: 8px;
+
+    background: #fff;
+}
+
+
+/* Remove ugly number input arrows on some browsers */
+input[type="number"] {
+    appearance: textfield;
+}
+
+
+/* Save button */
+button {
+    width: 100%;
+
+    margin-top: 10px;
+
+    padding: 15px;
+
+    border: none;
+    border-radius: 8px;
+
+    background: #2e7d32;
+    color: white;
+
+    font-size: 1.2rem;
+    font-weight: 600;
+
+    cursor: pointer;
+}
+
+
+/* Touch feedback */
+button:active {
+    transform: scale(0.98);
+}
+
+
+/* Smaller screens */
+@media (max-width: 400px) {
+
+    .container {
+        padding: 20px;
+    }
+
+    h1 {
+        font-size: 1.5rem;
+    }
+
+}
