@@ -6,9 +6,9 @@
 #include <Melopero_RV3028.h>
 
 // Global objects
-WebServer server(80); // Web Server
-Melopero_RV3028 rtc;  // Real Time Clock
-Preferences prefs;    // Set up Preferences (for storing information in flash storage to survive power cycles)
+WebServer server(80);  // Web Server
+Melopero_RV3028 rtc;   // Real Time Clock
+Preferences prefs;     // Set up Preferences (for storing information in flash storage to survive power cycles)
 
 // Global Settings
 String startTime01;
@@ -33,8 +33,12 @@ struct CurrentTime {
 
 void setup() {
 
+  // Start Serial
+  Serial.begin(115200);
+  delay(1000);
+
   // Initialise RTC clock
-  Wire.begin(0,1);
+  Wire.begin(0, 1);
   rtc.initI2C();
   rtc.set24HourMode();
 
@@ -44,16 +48,18 @@ void setup() {
     return;
   }
 
-  // Start Serial
-  Serial.begin(115200);
-  delay(1000);
-  
+  // Set the RTC to the wrong time for debugging Set Time button
+  // rtc.setTime(2000, 01, 01, 01, 00, 00, 00);
+  // CurrentTime now = getCurrentTime();
+  // Serial.print("RTC updated: ");
+  // Serial.println(now.formatted);
+
   // Load stored time and duration settings
   loadSettings();
-  
+
   // Configure WiFi, server, load web files
   prepareWeb();
-  
+
   // Tell server what to do when Save button is pressed
   enableSaving();
 
@@ -61,6 +67,7 @@ void setup() {
   enableSettingsEndpoint();
   // Create endpoint for RTC time
   enableStatusEndpoint();
+  enableRTCSettings();
 
   // Start web server
   server.begin();
@@ -112,7 +119,7 @@ void loadSettings() {
   Serial.println();
   printTimestamp();
   Serial.println("Current Settings:");
-  Serial.print("Time: ");
+  Serial.print("Start Time 01: ");
   Serial.println(startTime01);
 
   Serial.print("Hours: ");
@@ -125,7 +132,7 @@ void loadSettings() {
 
 void prepareWeb() {
 
-  // Start WiFi access point  
+  // Start WiFi access point
   printTimestamp();
   Serial.println("Starting WiFi...");
   WiFi.softAP(ssid, password);
@@ -147,14 +154,12 @@ void prepareWeb() {
     file = root.openNextFile();
   }
   Serial.println();
-
 }
 
-// Tell server what to do when Save button is pressed
 void enableSaving() {
+  // Tell server what to do when Save button is pressed
 
   server.on("/save", []() {
-
     // Create a variable for each setting
     startTime01 = server.arg("time01");
     duration01 = server.arg("duration01").toInt();
@@ -187,11 +192,10 @@ void enableSaving() {
   });
 }
 
-// When visiting https://192.168.4.1/settings, load the latest time and duration settings
 void enableSettingsEndpoint() {
+  // When visiting https://192.168.4.1/settings, load the latest time and duration settings
 
   server.on("/settings", []() {
-
     String time01 = prefs.getString("time01", "09:00");
     uint16_t duration01 = prefs.getUShort("duration01", 60);
 
@@ -205,14 +209,12 @@ void enableSettingsEndpoint() {
     serializeJson(doc, response);
 
     server.send(200, "application/json", response);
-
   });
 }
 
 void enableStatusEndpoint() {
 
   server.on("/status", []() {
-
     CurrentTime now = getCurrentTime();
 
     StaticJsonDocument<200> doc;
@@ -225,12 +227,32 @@ void enableStatusEndpoint() {
     serializeJson(doc, response);
 
     server.send(200, "application/json", response);
-
   });
 }
 
-// Get the current time from the RTC
+void enableRTCSettings() {
+
+  server.on("/setRTC", []() {
+    int year = server.arg("year").toInt();
+    int month = server.arg("month").toInt();
+    int weekday = server.arg("weekday").toInt();
+    int day = server.arg("day").toInt();
+    int hour = server.arg("hour").toInt();
+    int minute = server.arg("minute").toInt();
+    int second = server.arg("second").toInt();
+
+    rtc.setTime(year, month, weekday, day, hour, minute, second);
+    CurrentTime now = getCurrentTime();
+
+    Serial.print("RTC updated: ");
+    Serial.println(now.formatted);
+
+    server.send(200, "text/plain", "RTC update");
+  });
+}
+
 CurrentTime getCurrentTime() {
+  // Get the current time from the RTC
 
   CurrentTime t;
 
@@ -256,19 +278,18 @@ CurrentTime getCurrentTime() {
   return t;
 }
 
-// Format a timestamp for debugging purposes
 void printTimestamp() {
+  // Format a timestamp for debugging purposes
 
   CurrentTime now = getCurrentTime();
   Serial.print("==========(");
   Serial.print(now.formatted);
   Serial.println(")==========");
-
 }
 
-// Used to convert start times from strings (e.g. "09:00")
-// into minutes since midnight as an interger (e.g. 540)
 uint16_t timeStringToMinutes(String time) {
+  // Used to convert start times from strings (e.g. "09:00")
+  // into minutes since midnight as an interger (e.g. 540)
 
   int colon = time.indexOf(':');
 
@@ -278,8 +299,8 @@ uint16_t timeStringToMinutes(String time) {
   return (hours * 60) + minutes;
 }
 
-// Logic which determines if the speaker should be playing or silent
 void checkSchedule() {
+  // Logic which determines if the speaker should be playing or silent
 
   CurrentTime now = getCurrentTime();
 
