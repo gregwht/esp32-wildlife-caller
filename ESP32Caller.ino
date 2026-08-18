@@ -287,9 +287,9 @@ void printTimestamp() {
   Serial.println(")==========");
 }
 
-uint16_t timeStringToMinutes(String time) {
-  // Used to convert start times from strings (e.g. "09:00")
-  // into minutes since midnight as an interger (e.g. 540)
+uint16_t timeStringToMinutes(const String& time) {
+// Used to convert start times from strings (e.g. "09:00")
+// into minutes since midnight as an interger (e.g. 540)
 
   int colon = time.indexOf(':');
 
@@ -307,19 +307,46 @@ void checkSchedule() {
   uint16_t start = timeStringToMinutes(startTime01);
   uint16_t end = start + duration01;
 
-  if (now.minutesSinceMidnight >= start && now.minutesSinceMidnight < end) {
-    if (!speakerOn) {
-      speakerOn = true;
+  bool shouldBeOn;
 
-      printTimestamp();
-      Serial.println("Speaker ON");
-    }
-  } else {
-    if (speakerOn) {
-      speakerOn = false;
+  // For situations where caller is running 24 hours a day
+  if (duration01 >= 1440) {
 
-      printTimestamp();
-      Serial.println("Speaker OFF");
-    }
+    shouldBeOn = true;
+
   }
+  // For schedules which don't cross midnight
+  else if (end <= 1440) {
+
+    shouldBeOn = 
+      now.minutesSinceMidnight >= start &&
+      now.minutesSinceMidnight < end;
+
+  }
+  // For schedules which cross midnight
+  else {
+
+    uint16_t endNextDay = end - 1440;
+
+    shouldBeOn = 
+      now.minutesSinceMidnight >= start ||
+      now.minutesSinceMidnight < endNextDay;
+
+  }
+
+  // Only react when the state changes
+  if (shouldBeOn && !speakerOn) {
+
+    speakerOn = true;
+    printTimestamp();
+    Serial.println("Speaker ON");
+
+  }
+  else if (!shouldBeOn && speakerOn) {
+
+    speakerOn = false;
+    printTimestamp();
+    Serial.println("Speaker OFF");
+  }
+
 }
