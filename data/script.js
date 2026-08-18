@@ -61,6 +61,35 @@ function loadStatus() {
 	});
 }
 
+function syncRTC() {
+
+	const now = new Date();
+
+	const year = now.getFullYear();
+	const month = now.getMonth() + 1;
+	const weekday = now.getDay() === 0 ? 7 : now.getDay(); // JavaScript reports Sunday as 0, but the RTC library we're using reports it as 7, so we need to convert.
+	const day = now.getDate();
+	const hour = now.getHours();
+	const minute = now.getMinutes();
+	const second = now.getSeconds();
+
+	fetch(`/setRTC?year=${year}&month=${month}&weekday=${weekday}&day=${day}&hour=${hour}&minute=${minute}&second=${second}`)
+		.then(response => response.text())
+		.then(message => {
+			
+			const rtcMessage = document.getElementById("rtcMessage");
+			rtcMessage.innerHTML = "RTC Clock Synchronised!";
+			
+			setTimeout(() => {
+				rtcMessage.innerHTML = "";
+			}, 3000);
+
+			loadStatus();
+			
+		});
+}
+
+
 
 window.onload = function() {
 
