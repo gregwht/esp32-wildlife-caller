@@ -48,12 +48,6 @@ void setup() {
     return;
   }
 
-  // Set the RTC to the wrong time for debugging Set Time button
-  // rtc.setTime(2000, 01, 01, 01, 00, 00, 00);
-  // CurrentTime now = getCurrentTime();
-  // Serial.print("RTC updated: ");
-  // Serial.println(now.formatted);
-
   // Load stored time and duration settings
   loadSettings();
 
