@@ -150,7 +150,6 @@ void prepareWeb() {
 
 }
 
-
 void enableSaving() {
 // Tell server what to do when Save button is pressed
 
@@ -187,7 +186,6 @@ void enableSaving() {
     server.send(200, "text/plain", "Saved");
   });
 }
-
 
 void enableSettingsEndpoint() {
 // When visiting https://192.168.4.1/settings, load the latest time and duration settings
@@ -231,7 +229,6 @@ void enableStatusEndpoint() {
   });
 }
 
-
 CurrentTime getCurrentTime() {
 // Get the current time from the RTC
 
@@ -259,7 +256,6 @@ CurrentTime getCurrentTime() {
   return t;
 }
 
-
 void printTimestamp() {
 // Format a timestamp for debugging purposes
 
@@ -281,7 +277,6 @@ uint16_t timeStringToMinutes(const String& time) {
 
   return (hours * 60) + minutes;
 }
-
 
 void checkSchedule() {
 // Logic which determines if the speaker should be playing or silent
@@ -332,5 +327,4 @@ void checkSchedule() {
     printTimestamp();
     Serial.println("Speaker OFF");
   }
-
 }
