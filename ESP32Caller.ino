@@ -21,6 +21,7 @@ const char* password = "password";
 
 // Set up pins
 const int buttonPin = 3;
+const int speakerPowerPin = 4;
 
 // Create struct for the current time
 struct CurrentTime {
@@ -71,6 +72,8 @@ void setup() {
 
   // Prepare pins
   pinMode(buttonPin, INPUT_PULLUP);
+  pinMode(speakerPowerPin, OUTPUT);
+  digitalWrite(speakerPowerPin, LOW); // LOW prevents speaker powering on when ESP32 starts
 }
 
 void loop() {
@@ -333,14 +336,29 @@ void checkSchedule() {
 
     speakerOn = true;
     printTimestamp();
-    Serial.println("Speaker ON");
+    Serial.println("Speaker should be ON");
+    setSpeaker(true);
 
   }
   else if (!shouldBeOn && speakerOn) {
 
     speakerOn = false;
     printTimestamp();
-    Serial.println("Speaker OFF");
+    Serial.println("Speaker should be OFF");
+    setSpeaker(false);
   }
+}
 
+void setSpeaker(bool state) {
+
+  digitalWrite(speakerPowerPin, state ? HIGH : LOW);
+
+  if (state) {
+    Serial.println("Turning speaker power GPIO ON");
+    // Turn MOSFET on here
+  }
+  else {
+    Serial.println("Turning speaker power GPIO OFF");
+    // Turn MOSFET off here
+  }
 }
