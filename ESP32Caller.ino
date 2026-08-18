@@ -150,8 +150,9 @@ void prepareWeb() {
 
 }
 
-// Tell server what to do when Save button is pressed
+
 void enableSaving() {
+// Tell server what to do when Save button is pressed
 
   server.on("/save", []() {
 
@@ -187,8 +188,9 @@ void enableSaving() {
   });
 }
 
-// When visiting https://192.168.4.1/settings, load the latest time and duration settings
+
 void enableSettingsEndpoint() {
+// When visiting https://192.168.4.1/settings, load the latest time and duration settings
 
   server.on("/settings", []() {
 
@@ -229,8 +231,9 @@ void enableStatusEndpoint() {
   });
 }
 
-// Get the current time from the RTC
+
 CurrentTime getCurrentTime() {
+// Get the current time from the RTC
 
   CurrentTime t;
 
@@ -256,8 +259,9 @@ CurrentTime getCurrentTime() {
   return t;
 }
 
-// Format a timestamp for debugging purposes
+
 void printTimestamp() {
+// Format a timestamp for debugging purposes
 
   CurrentTime now = getCurrentTime();
   Serial.print("==========(");
@@ -266,9 +270,9 @@ void printTimestamp() {
 
 }
 
+uint16_t timeStringToMinutes(const String& time) {
 // Used to convert start times from strings (e.g. "09:00")
 // into minutes since midnight as an interger (e.g. 540)
-uint16_t timeStringToMinutes(String time) {
 
   int colon = time.indexOf(':');
 
@@ -278,27 +282,55 @@ uint16_t timeStringToMinutes(String time) {
   return (hours * 60) + minutes;
 }
 
-// Logic which determines if the speaker should be playing or silent
+
 void checkSchedule() {
+// Logic which determines if the speaker should be playing or silent
 
   CurrentTime now = getCurrentTime();
 
   uint16_t start = timeStringToMinutes(startTime01);
   uint16_t end = start + duration01;
 
-  if (now.minutesSinceMidnight >= start && now.minutesSinceMidnight < end) {
-    if (!speakerOn) {
-      speakerOn = true;
+  bool shouldBeOn;
 
-      printTimestamp();
-      Serial.println("Speaker ON");
-    }
-  } else {
-    if (speakerOn) {
-      speakerOn = false;
+  // For situations where caller is running 24 hours a day
+  if (duration01 >= 1440) {
 
-      printTimestamp();
-      Serial.println("Speaker OFF");
-    }
+    shouldBeOn = true;
+
   }
+  // For schedules which don't cross midnight
+  else if (end <= 1440) {
+
+    shouldBeOn = 
+      now.minutesSinceMidnight >= start &&
+      now.minutesSinceMidnight < end;
+
+  }
+  // For schedules which cross midnight
+  else {
+
+    uint16_t endNextDay = end - 1440;
+
+    shouldBeOn = 
+      now.minutesSinceMidnight >= start ||
+      now.minutesSinceMidnight < endNextDay;
+
+  }
+
+  // Only react when the state changes
+  if (shouldBeOn && !speakerOn) {
+
+    speakerOn = true;
+    printTimestamp();
+    Serial.println("Speaker ON");
+
+  }
+  else if (!shouldBeOn && speakerOn) {
+
+    speakerOn = false;
+    printTimestamp();
+    Serial.println("Speaker OFF");
+  }
+
 }
