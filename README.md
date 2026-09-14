@@ -1,4 +1,4 @@
-# ESP32 Caller
+# ESP32 Wildlife Caller
 
 Repo for a solar-powered wildlife caller designed around the ESP32-C3 Zero Mini development board, currently in early stages of development.
 
