@@ -1,21 +1,76 @@
-function saveSettings() {
+const MAX_SLOTS = 10;
 
-	const time01 = document.getElementById("startTime01").value;
-	
-	const hours01 = Number(document.getElementById("duration01Hours").value);
-	const minutes01 = Number(document.getElementById("duration01Mins").value);
+function addTimeslot(time = "09:00", durationMinutes = 60) {
 
-	if (hours01 === 24 && minutes01 > 0) {
-		alert("The maximum duration is 24 hours.");
+	const container = document.getElementById("timeslotsContainer");
+
+	if (container.children.length >= MAX_SLOTS) {
+		alert(`You can only have up to ${MAX_SLOTS} timeslots.`);
 		return;
 	}
 
-	const duration01 = hours01 * 60 + minutes01;
+	const hours = Math.floor(durationMinutes / 60);
+	const minutes = durationMinutes % 60;
 
-	console.log(time01);
-	console.log(duration01);
+	const row = document.createElement("div");
+	row.className = "timeslot-row";
 
-	fetch(`/save?time01=${time01}&duration01=${duration01}`)
+	row.innerHTML = `
+		<label>
+			Start Time
+			<input type="time" class="slot-time" value="${time}">
+		</label>
+
+		<div class="duration-inputs">
+			<label>
+				Hours
+				<input type="number" class="slot-hours" min="0" max="24" value="${hours}">
+			</label>
+
+			<label>
+				Minutes
+				<input type="number" class="slot-minutes" min="0" max="59" value="${minutes}">
+			</label>
+		</div>
+
+		<button type="button" class="remove-btn" onclick="this.parentElement.remove()">Remove</button>
+	`;
+
+	container.appendChild(row);
+}
+
+
+function saveSettings() {
+
+	const rows = document.querySelectorAll("#timeslotsContainer .timeslot-row");
+
+	if (rows.length === 0) {
+		alert("Add at least one timeslot before saving.");
+		return;
+	}
+
+	let params = `numSlots=${rows.length}`;
+
+	for (let i = 0; i < rows.length; i++) {
+
+		const time = rows[i].querySelector(".slot-time").value;
+		const hours = Number(rows[i].querySelector(".slot-hours").value);
+		const minutes = Number(rows[i].querySelector(".slot-minutes").value);
+	
+
+		if (hours01 === 24 && minutes01 > 0) {
+			alert(`Timeslot ${i + 1}: the maximum duration is 24 hours.`);
+			return;
+		}
+
+		const duration = hours * 60 + minutes;
+
+		console.log(`Slot ${i}:`, time, duration);
+
+		params += `&time${i}=${time}&duration${i}=${duration}`;
+	}
+
+	fetch(`/save?${params}`)
 		.then(response => response.text())
 		.then(message => {
 			
@@ -37,20 +92,39 @@ function loadSettings() {
 		.then(response => response.json())
 		.then(settings => {
 
-			document.getElementById("startTime01").value = settings.time01;
+			const container = document.getElementById("timeslotsContainer");
+			container.innerHTML = ""; // Clear existing rows before rebuilding from the server's data
 
-			let hours = Math.floor(settings.duration01 / 60);
-			let minutes = settings.duration01 % 60;
+			settings.timeslots.forEach(slot => {
+				addTimeslot(slot.time, slot.duration);
+			});
 
-			document.getElementById("duration01Hours").value = hours;
-			document.getElementById("duration01Mins").value = minutes;
+			renderStatus(settings.timeslots);
 
-			document.getElementById("statusStartTime").innerHTML = settings.time01;
-
-			document.getElementById("statusDuration").innerHTML = hours + "h " + minutes + "m";
 		});
 }
 
+function renderStatus(timeslots) {
+
+	const list = document.getElementById("statusTimeslots");
+	list.innerHTML = "";
+
+	if (timeslots.length === 0) {
+		list.innerHTML = "<li>No timeslots configured</li>";
+		return;
+	}
+
+	timeslots.forEach(slot => {
+
+		const hours = Math.floor(slot.duration / 60);
+		const minutes = slot.duration % 60;
+
+		const item = document.createElement("li")
+		item.textContent = `${slot.time} for ${hours}h ${minutes}m`;
+
+		list.appendChild(item);
+	})
+}
 function loadStatus() {
 
 	fetch("/status")

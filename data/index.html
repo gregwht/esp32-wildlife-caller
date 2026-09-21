@@ -1,38 +1,18 @@
 <!DOCTYPE html>
 <html>
     <head>
-        <title>Solar Speaker</title>
+        <title>Wildlife Caller</title>
         <link rel="stylesheet" href="style.css">
     </head>
 
     <body>
         <div class="container">
 
-            <h1>Solar Speaker Setup</h1>
+            <h1>Wildlife Caller Setup</h1>
 
-            <label>
-                Start Time 01:
-                <input type="time" id="startTime01">
-            </label>
+            <div id="timeslotsContainer"></div>
 
-            <br>
-
-            <label>Duration</label>
-
-            <br>
-
-            <label>
-                Hours:
-                <input type="number" id="duration01Hours" min="0" max="24" value="1">
-            </label>
-
-
-            <label>
-                Minutes:
-                <input type="number" id="duration01Mins" min="0" max="1440">
-            </label>
-
-            <br>
+            <button type="button" class="add-btn" onclick="addTimeslot()">+ Add Timeslot</button>
 
             <button onclick="saveSettings()">Save</button>
 
@@ -47,22 +27,17 @@
                 <span id ="currentTime">Loading...</span>
             </p>
 
-            <p>
-                Scheduled Start Time:
-                <span id="statusStartTime">Loading...</span>
-            </p>
+            <p>Scheduled Timeslots:</p>
 
-            <p>
-                Duration:
-                <span id="statusDuration">Loading...</span>
-            </p>
+            <ul id="statusTimeslots">
+                <li>Loading...</li>
+            </ul>
 
             <button onclick="syncRTC()">
                 Sync RTC Clock to Current Time
             </button>
 
             <div id="rtcMessage"></div>
-
 
         </div>    
 

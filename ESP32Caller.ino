@@ -11,8 +11,17 @@ Melopero_RV3028 rtc;   // Real Time Clock
 Preferences prefs;     // Set up Preferences (for storing information in flash storage to survive power cycles)
 
 // Global Settings
-String startTime01;
-uint16_t duration01;
+
+// A single on/off window for the speaker
+struct Timeslot {
+  String startTime;    // e.g. "09:00"
+  uint16_t duration;   // in minutes 
+}
+
+const uint8_t MAX_SLOTS = 10;  // Arbitrarily set to 10, increase if more timeslots are needed
+Timeslot timeslots[MAX_SLOTS];
+uint8_t numSlots = 1;          // How many of the timeslots are actually in use (derived from timeslot rows in web UI )
+
 bool speakerOn = false;
 
 // Set up WiFi
@@ -105,25 +114,34 @@ void loadSettings() {
   // Open the flash storage for saving time and duration settings, in read/write mode
   prefs.begin("settings", false);
 
-  // Load default settings
-  startTime01 = prefs.getString("time01", "09:00");
-  duration01 = prefs.getUShort("duration01", 60);
-
-  // Convert duration into hours and minutes
-  uint8_t hours = duration01 / 60;
-  uint8_t minutes = duration01 % 60;
+  // Get how many slots were saved last time (defaults to 1)
+  numSlots = prefs.getUChar("numSlots", 1);
+  if (numSlots < 1) numSlots = 1;
+  if (numSlots > MAX_SLOTS) numSlots = MAX_SLOTS;
 
   Serial.println();
   printTimestamp();
   Serial.println("Current Settings:");
-  Serial.print("Start Time 01: ");
-  Serial.println(startTime01);
 
-  Serial.print("Hours: ");
-  Serial.println(hours);
+  for (uint8_t i = 0; o < numSlots; i++) {
+    String timeKey = "time" + String(i);
+    String durKey = "duration" + String(i);
 
-  Serial.print("Minutes: ");
-  Serial.println(minutes);
+    // Set default timeslot
+    String defaultTime = (i == 0) ? "09:00" : "00:00";
+    uint16_t defaultDuration = (i == 0) ? 60 : 0;
+
+    timeslots[i].startTime = prefs.getString(timeKey.c_str(), defaultTime);
+    timeslots[i].duration = prefs.getUShort(durKey.c_str(), defaultDuration);
+  
+    Serial.print("Slot ");
+    Serial.print(i);
+    Serial.print(": start=";)
+    Serial.print(timeslots[i].startTime);
+    Serial.print(" duration=");
+    Serial.print(timeslots[i].duration);
+    Serial.println(" min");
+  }
   Serial.println();
 }
 
@@ -157,19 +175,37 @@ void enableSaving() {
   // Tell server what to do when Save button is pressed
 
   server.on("/save", []() {
-    // Create a variable for each setting
-    startTime01 = server.arg("time01");
-    duration01 = server.arg("duration01").toInt();
+    // The web page sends how many slots it's submitting, plus a time and duration for each
+    uint8_t submittedSlots = server.arg("numSlots").toInt();
 
-    // Ensure the submitted duration can't be over 24 hours
-    if (duration01 > 1440) {
-      duration01 = 1440;
+    if (submittedSlots < 1) submittedSlots = 1;
+    if (submittedSlots > MAX_SLOTS) submittedSlots = MAX_SLOTS;
+
+    numSlots = submittedSlots;
+
+    for (uint8_t i = 0; i < numSlots; i++) {
+
+      String timeKey = "time" + String(i);
+      String durKey = "duration" + String(i);
+
+      timeslots[i].startTime = server.arg(timeKey);
+      timeslots[i].duration = server.arg(durKey).toInt();
+
+      // Ensure a submitted duration can't be over 24 hours
+      if (timeslots[i].duration > 1440){
+        timeslots[i].duration = 1440;
+      }
+
+      // Save this slot in flash storage
+      prefs.putString(timeKey.c_str(), timeslots[i].startTime);
+      prefs.putUShort(durKey.c_str(), timeslots[i].duration);
+
     }
 
-    // Save settings in flash storage
-    prefs.putString("time01", startTime01);
-    prefs.putUShort("duration01", duration01);
+    // Save how many slots are in use
+    prefs.putUChar("numSlots", numSlots);
 
+   
     // Print arguments received and their values
     Serial.println("Settings received:");
     for (int i = 0; i < server.args(); i++) {
@@ -180,10 +216,16 @@ void enableSaving() {
     Serial.println();
 
     Serial.println("Saved! Checking flash...");
-    Serial.print("Stored time: ");
-    Serial.println(prefs.getString("time01", "missing"));
-    Serial.print("Stored duration: ");
-    Serial.println(prefs.getUShort("duration01", 0));
+    for (uint8_t i=0; i < numSlots; i++) {
+      String timeKey = "time" + String(i);
+      String durKey = "duration" + String(i);
+      Serial.print("Stored slot ");
+      Serial.print(i);
+      Serial.print(": ");
+      Serial.print(prefs.getString(timeKey.c_str(), "missing"));
+      Serial.print(" / ");
+      Serial.println(prefs.getUShort(durKey.c_str(), 0));
+    }
     Serial.println();
     server.send(200, "text/plain", "Saved");
   });
@@ -193,13 +235,17 @@ void enableSettingsEndpoint() {
   // When visiting https://192.168.4.1/settings, load the latest time and duration settings
 
   server.on("/settings", []() {
-    String time01 = prefs.getString("time01", "09:00");
-    uint16_t duration01 = prefs.getUShort("duration01", 60);
+    
+    StaticJsonDocument<1024> doc;
 
-    StaticJsonDocument<200> doc;
+    doc["numSlots"] = numSlots;
+    JsonArray slots = doc.createNestedArray("timeslots");
 
-    doc["time01"] = time01;
-    doc["duration01"] = duration01;
+    for (uint8_t i = 0; i < numSlots; i++) {
+      JsonObject slot = slots.createNestedObject();
+      slot["time"] = timeslots[i].startTime;
+      slot["duration"] = timeslots[i].duration;
+    }
 
     String response;
 
@@ -296,39 +342,40 @@ uint16_t timeStringToMinutes(const String& time) {
   return (hours * 60) + minutes;
 }
 
+bool isWithinSlot(const Timeslot& slot, uint16_t nowMinutes){
+
+  uint16_t start = timeStringToMinutes(slot.startTime);
+  uint16_t end = start.slot.duration;
+
+  // For a slot running 24 hours a day
+  if (slot.duration >= 1440) {
+    return true;
+  }
+  // For a slot which doesn't cross midnight
+  else if (end <= 1440) {
+    return nowMinutes >= start && nowMinutes < end;
+  }
+  // For a slot which crosses midnight
+  else {
+    uint16_t endNextDay = end - 1440;
+    return nowMinutes >= start || nowMinutes < endNextDay;
+  }
+}
+
+
 void checkSchedule() {
   // Logic which determines if the speaker should be playing or silent
+  // The speaker should be on if the current time falls inside any of the active slots
 
   CurrentTime now = getCurrentTime();
 
-  uint16_t start = timeStringToMinutes(startTime01);
-  uint16_t end = start + duration01;
+  bool shouldBeOn = false;
 
-  bool shouldBeOn;
-
-  // For situations where caller is running 24 hours a day
-  if (duration01 >= 1440) {
-
-    shouldBeOn = true;
-
-  }
-  // For schedules which don't cross midnight
-  else if (end <= 1440) {
-
-    shouldBeOn = 
-      now.minutesSinceMidnight >= start &&
-      now.minutesSinceMidnight < end;
-
-  }
-  // For schedules which cross midnight
-  else {
-
-    uint16_t endNextDay = end - 1440;
-
-    shouldBeOn = 
-      now.minutesSinceMidnight >= start ||
-      now.minutesSinceMidnight < endNextDay;
-
+  for (uint8_t i = 0; i < numSlots; i++) {
+    if (isWithinSlot(timeslots[i], now.minutesSinceMidnight)) {
+      shouldBeOn = true;
+      break;  // Once we find an active slot, we don't need to check for any more
+    }
   }
 
   // Only react when the state changes
@@ -355,10 +402,10 @@ void setSpeaker(bool state) {
 
   if (state) {
     Serial.println("Turning speaker power GPIO ON");
-    // Turn MOSFET on here
+    digitalWrite(speakerPowerPin, HIGH);
   }
   else {
     Serial.println("Turning speaker power GPIO OFF");
-    // Turn MOSFET off here
+    digitalWrite(speakerPowerPin, LOW);
   }
 }
