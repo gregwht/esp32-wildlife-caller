@@ -3,7 +3,7 @@ const int speakerPowerPin = 10;
 void setup() {
   Serial.begin(115200);
   pinMode(speakerPowerPin, OUTPUT);
-  digitalWrite(speakerPowerPin, LOW); // start off, matches your pull-down safety
+  digitalWrite(speakerPowerPin, LOW); // start off
 }
 
 void loop() {
