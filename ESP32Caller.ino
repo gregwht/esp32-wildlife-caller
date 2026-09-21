@@ -21,7 +21,7 @@ const char* password = "password";
 
 // Set up pins
 const int buttonPin = 3;
-const int speakerPowerPin = 4;
+const int speakerPowerPin = 10;
 
 // Create struct for the current time
 struct CurrentTime {
