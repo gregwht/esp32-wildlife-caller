@@ -77,6 +77,79 @@ input[type="number"] {
 }
 
 
+/* One timeslot's inputs, grouped together */
+.timeslot-row {
+    display: flex;
+    align-items: flex-end;
+    gap: 10px;
+
+    margin-bottom: 20px;
+    padding-bottom: 15px;
+
+    border-bottom: 1px solid #eee;
+}
+
+.timeslot-row label {
+    flex: 1;
+    margin-bottom: 0;
+    font-size: 0.95rem;
+}
+
+.duration-inputs {
+    display: flex;
+    gap: 8px;
+    flex: 1;
+}
+
+.duration-inputs label {
+    flex: 1;
+}
+
+
+/* Remove-timeslot button */
+.remove-btn {
+    width: auto;
+    margin-top: 0;
+
+    padding: 10px 14px;
+
+    font-size: 0.9rem;
+    font-weight: 600;
+
+    background: #fff;
+    color: #c62828;
+    border: 1px solid #c62828;
+    border-radius: 8px;
+
+    cursor: pointer;
+}
+
+.remove-btn:active {
+    transform: scale(0.98);
+}
+
+
+/* Add-timeslot button */
+.add-btn {
+    background: #fff;
+    color: #2e7d32;
+    border: 2px solid #2e7d32;
+
+    margin-bottom: 10px;
+}
+
+
+/* Status list of scheduled timeslots */
+#statusTimeslots {
+    margin: 10px 0 20px 0;
+    padding-left: 20px;
+}
+
+#statusTimeslots li {
+    margin-bottom: 6px;
+}
+
+
 /* Save button */
 button {
     width: 100%;
@@ -113,6 +186,11 @@ button:active {
 
     h1 {
         font-size: 1.5rem;
+    }
+
+    .timeslot-row {
+        flex-direction: column;
+        align-items: stretch;
     }
 
 }
