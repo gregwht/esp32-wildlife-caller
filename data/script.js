@@ -58,7 +58,7 @@ function saveSettings() {
 		const minutes = Number(rows[i].querySelector(".slot-minutes").value);
 	
 
-		if (hours01 === 24 && minutes01 > 0) {
+		if (hours === 24 && minutes > 0) {
 			alert(`Timeslot ${i + 1}: the maximum duration is 24 hours.`);
 			return;
 		}
