@@ -8,8 +8,7 @@
 #include "driver/gpio.h"
 
 // Deep sleep settings
-// const unsigned long CONFIG_TIMEOUT_MS = 5 * 60UL * 1000UL;  // Go back to sleep after 5 mins of no activity in config mode
-const unsigned long CONFIG_TIMEOUT_MS = 1 * 60UL * 1000UL;  // TEMP for bench testing; set back to 5 before deployment
+const unsigned long CONFIG_TIMEOUT_MS = 5 * 60UL * 1000UL;  // Go back to sleep after 5 mins of no activity in config mode
 const int rtcIntPin = 5;  // RV3028 INT pin - wake-capable on the ESP32-C3 (GPIO2-5 only)
 const uint64_t SAFETY_NET_SECONDS = 3600; // Back-up wake in case the RTC alarm logic ever misses
 
@@ -55,8 +54,7 @@ void setup() {
 
   // Start Serial
   Serial.begin(115200);
-  // delay(1000);
-  delay(3000); // For debug purposes
+  delay(1000);
 
   // Understand why ESP32 woke up
   esp_sleep_wakeup_cause_t wakeupReason = esp_sleep_get_wakeup_cause();
@@ -66,8 +64,8 @@ void setup() {
   Serial.print("WAKE");
   Serial.println(")==========");
   Serial.println("I just woke up!");
-  Serial.print("Wakeup cause: "); Serial.println((int)wakeupReason);   // 0 = power-on/reset, 4 = timer, 7 = GPIO
-  Serial.print("GPIO wake mask: 0b"); Serial.println((uint32_t)esp_sleep_get_gpio_wakeup_status(), BIN);
+  Serial.print("Wakeup cause: "); Serial.print((int)wakeupReason); Serial.println(" (0 = power-on/reset, 4 = timer, 7 = GPIO)");
+  // Serial.print("GPIO wake mask: 0b"); Serial.println((uint32_t)esp_sleep_get_gpio_wakeup_status(), BIN);
 
   // If a GPIO caused the wake, find out which one(s)
   // This lets us tell the RTC alarm apart from the button, since both wake via the same mechanism
@@ -96,10 +94,11 @@ void setup() {
   rtc.set24HourMode();
 
   // DEBUG: did the RTC alarm fire since the last boot?
-  uint8_t status = rtc.readFromRegister(0x0E);   // Status register
-  Serial.print("RTC status: 0b"); Serial.println(status, BIN);
-  Serial.print("Alarm flag (AF): "); Serial.println((status >> 2) & 1);
-  Serial.print("INT pin (GPIO5) now: "); Serial.println(digitalRead(rtcIntPin));
+  // uint8_t status = rtc.readFromRegister(0x0E);   // Status register
+  // Serial.print("RTC status: 0b"); Serial.println(status, BIN);
+  // Serial.print("Alarm flag (AF): "); Serial.println((status >> 2) & 1);
+  // Serial.print("INT pin (GPIO5) now: "); Serial.println(digitalRead(rtcIntPin));
+
   // Clear the RTC's alarm flag now before it has a chance to re-trigger
   // The INT pin stays LOW until this happens, which would otherwise wake the ESP32 again immediately
   rtc.clearInterruptFlags();
@@ -144,7 +143,6 @@ void setup() {
   server.begin();
   printTimestamp();
   Serial.println("Web server started.");
-  Serial.println();
 
   // Start (or restart) the inactivity timer for config mode
   configModeStart = millis();
@@ -283,7 +281,6 @@ void loadSettings() {
     Serial.print(timeslots[i].duration);
     Serial.println(" min");
   }
-  Serial.println();
 }
 
 void prepareWeb() {
@@ -309,7 +306,6 @@ void prepareWeb() {
     Serial.println(" loaded successfully.");
     file = root.openNextFile();
   }
-  Serial.println();
 }
 
 void enableSaving() {
@@ -349,13 +345,13 @@ void enableSaving() {
 
    
     // Print arguments received and their values
+    printTimestamp();
     Serial.println("Settings received:");
     for (int i = 0; i < server.args(); i++) {
       Serial.print(server.argName(i));
       Serial.print(" = ");
       Serial.println(server.arg(i));
     }
-    Serial.println();
 
     Serial.println("Saved! Checking flash...");
     for (uint8_t i=0; i < numSlots; i++) {
@@ -368,7 +364,6 @@ void enableSaving() {
       Serial.print(" / ");
       Serial.println(prefs.getUShort(durKey.c_str(), 0));
     }
-    Serial.println();
     server.send(200, "text/plain", "Saved");
   });
 }
@@ -432,6 +427,7 @@ void enableRTCSettings() {
     rtc.setTime(year, month, weekday, day, hour, minute, second);
     CurrentTime now = getCurrentTime();
 
+    printTimestamp();
     Serial.print("RTC updated: ");
     Serial.println(now.formatted);
 
