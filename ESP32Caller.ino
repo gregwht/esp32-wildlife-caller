@@ -8,7 +8,8 @@
 #include "driver/gpio.h"
 
 // Deep sleep settings
-const unsigned long CONFIG_TIMEOUT_MS = 5 * 60UL * 1000UL;  // Go back to sleep after 5 mins of no activity in config mode
+// const unsigned long CONFIG_TIMEOUT_MS = 5 * 60UL * 1000UL;  // Go back to sleep after 5 mins of no activity in config mode
+const unsigned long CONFIG_TIMEOUT_MS = 1 * 60UL * 1000UL;  // TEMP for bench testing; set back to 5 before deployment
 const int rtcIntPin = 5;  // RV3028 INT pin - wake-capable on the ESP32-C3 (GPIO2-5 only)
 const uint64_t SAFETY_NET_SECONDS = 3600; // Back-up wake in case the RTC alarm logic ever misses
 
@@ -54,10 +55,19 @@ void setup() {
 
   // Start Serial
   Serial.begin(115200);
-  delay(1000);
+  // delay(1000);
+  delay(3000); // For debug purposes
 
   // Understand why ESP32 woke up
   esp_sleep_wakeup_cause_t wakeupReason = esp_sleep_get_wakeup_cause();
+
+  // DEBUG: what does the ESP32 think woke it?
+  Serial.print("==========(");
+  Serial.print("WAKE");
+  Serial.println(")==========");
+  Serial.println("I just woke up!");
+  Serial.print("Wakeup cause: "); Serial.println((int)wakeupReason);   // 0 = power-on/reset, 4 = timer, 7 = GPIO
+  Serial.print("GPIO wake mask: 0b"); Serial.println((uint32_t)esp_sleep_get_gpio_wakeup_status(), BIN);
 
   // If a GPIO caused the wake, find out which one(s)
   // This lets us tell the RTC alarm apart from the button, since both wake via the same mechanism
@@ -85,6 +95,11 @@ void setup() {
   rtc.initI2C();
   rtc.set24HourMode();
 
+  // DEBUG: did the RTC alarm fire since the last boot?
+  uint8_t status = rtc.readFromRegister(0x0E);   // Status register
+  Serial.print("RTC status: 0b"); Serial.println(status, BIN);
+  Serial.print("Alarm flag (AF): "); Serial.println((status >> 2) & 1);
+  Serial.print("INT pin (GPIO5) now: "); Serial.println(digitalRead(rtcIntPin));
   // Clear the RTC's alarm flag now before it has a chance to re-trigger
   // The INT pin stays LOW until this happens, which would otherwise wake the ESP32 again immediately
   rtc.clearInterruptFlags();
@@ -207,6 +222,7 @@ void goToSleep() {
   uint8_t alarmHour = nextEventMinutes / 60;
   uint8_t alarmMinute = nextEventMinutes % 60;
 
+  printTimestamp();
   Serial.print("Arming RTC alarm for ");
   if (alarmHour < 10) Serial.print("0");
   Serial.print(alarmHour);
@@ -300,6 +316,7 @@ void enableSaving() {
   // Tell server what to do when Save button is pressed
 
   server.on("/save", []() {
+    configModeStart = millis();    // User saved settings, so stay awake to allow them to finish editing
     // The web page sends how many slots it's submitting, plus a time and duration for each
     uint8_t submittedSlots = server.arg("numSlots").toInt();
 
@@ -360,6 +377,7 @@ void enableSettingsEndpoint() {
   // When visiting https://192.168.4.1/settings, load the latest time and duration settings
 
   server.on("/settings", []() {
+    configModeStart = millis();    // User loaded the page, so stay awake to allow them to finish editing 
     
     StaticJsonDocument<1024> doc;
 
@@ -401,6 +419,8 @@ void enableStatusEndpoint() {
 void enableRTCSettings() {
 
   server.on("/setRTC", []() {
+    configModeStart = millis();    // User synced clock, so stay awake to allow them to finish editing
+
     int year = server.arg("year").toInt();
     int month = server.arg("month").toInt();
     int weekday = server.arg("weekday").toInt();
